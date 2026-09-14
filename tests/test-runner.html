@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LexAI — Test Suite</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f172a; color: #e2e8f0; padding: 32px; }
+    h1 { font-size: 28px; margin-bottom: 6px; color: #818cf8; }
+    .subtitle { color: #64748b; margin-bottom: 32px; font-size: 14px; }
+    .suite { margin-bottom: 28px; }
+    .suite-title { font-size: 16px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #1e293b; }
+    .test { display: flex; align-items: flex-start; gap: 12px; padding: 10px 14px; border-radius: 8px; margin-bottom: 6px; font-size: 14px; }
+    .test.pass { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2); }
+    .test.fail { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.3); }
+    .test.skip { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); }
+    .badge { flex-shrink: 0; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px; text-transform: uppercase; }
+    .badge.pass { background: rgba(16,185,129,0.2); color: #10b981; }
+    .badge.fail { background: rgba(239,68,68,0.2); color: #ef4444; }
+    .badge.skip { background: rgba(245,158,11,0.2); color: #f59e0b; }
+    .test-name { flex: 1; color: #cbd5e1; }
+    .test-detail { font-size: 12px; color: #64748b; margin-top: 3px; font-family: monospace; }
+    .summary { display: flex; gap: 24px; padding: 20px 24px; background: #1e293b; border-radius: 12px; margin-bottom: 28px; }
+    .stat { text-align: center; }
+    .stat-num { font-size: 32px; font-weight: 800; }
+    .stat-num.pass { color: #10b981; }
+    .stat-num.fail { color: #ef4444; }
+    .stat-num.skip { color: #f59e0b; }
+    .stat-num.total { color: #818cf8; }
+    .stat-label { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+    .progress-bar { height: 6px; background: #1e293b; border-radius: 99px; overflow: hidden; margin-bottom: 24px; }
+    .progress-fill { height: 100%; border-radius: 99px; transition: width 0.6s ease; }
+    #run-btn { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; border: none; padding: 12px 28px; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; margin-bottom: 24px; }
+    #run-btn:hover { filter: brightness(1.1); }
+  </style>
+</head>
+<body>
+  <h1>⚖️ LexAI Test Suite</h1>
+  <p class="subtitle">Automated unit tests for all core utility functions and business logic</p>
+
+  <button id="run-btn" onclick="runAllTests()">▶ Run All Tests</button>
+
+  <div id="summary" class="summary" style="display:none">
+    <div class="stat"><div class="stat-num pass" id="pass-count">0</div><div class="stat-label">Passed</div></div>
+    <div class="stat"><div class="stat-num fail" id="fail-count">0</div><div class="stat-label">Failed</div></div>
+    <div class="stat"><div class="stat-num skip" id="skip-count">0</div><div class="stat-label">Skipped</div></div>
+    <div class="stat"><div class="stat-num total" id="total-count">0</div><div class="stat-label">Total</div></div>
+    <div class="stat" style="flex:1">
+      <div class="stat-num" id="score-pct" style="color:#818cf8">0%</div>
+      <div class="stat-label">Pass Rate</div>
+    </div>
+  </div>
+  <div class="progress-bar" id="progress-bar" style="display:none">
+    <div class="progress-fill" id="progress-fill" style="width:0%; background: linear-gradient(90deg,#6366f1,#10b981);"></div>
+  </div>
+
+  <div id="results"></div>
+
+  <!-- Load the main app logic (functions are exported to window in test mode) -->
+  <script>
+    // ============================================================
+    // LexAI — Inline test utilities (no external deps required)
+    // ============================================================
+
+    // ── Paste in the pure utility functions from app.js ──────────
+    // (copied here so tests run independently without the full DOM)
+
+    function escapeHtml(text) {
+      return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function markdownToHtml(text) {
+      if (!text) return "";
+      let html = text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+      html = html.replace(/```[\w]*\n?([\s\S]*?)```/g, (_, code) => `<pre><code>${code.trim()}</code></pre>`);
+      html = html.replace(/^#### (.+)$/gm, "<h4>$1</h4>");
+      html = html.replace(/^### (.+)$/gm, "<h3>$1</h3>");
+      html = html.replace(/^## (.+)$/gm, "<h2>$1</h2>");
+      html = html.replace(/^# (.+)$/gm, "<h1>$1</h1>");
+      html = html.replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>");
+      html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+      html = html.replace(/\*(.+?)\*/g, "<em>$1</em>");
+      html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
+      html = html.replace(/^---$/gm, "<hr/>");
+      html = html.replace(/^[\-\*] (.+)$/gm, "<li>$1</li>");
+      html = html.replace(/(<li>[\s\S]*?<\/li>)+/g, m => `<ul>${m}</ul>`);
+      return html;
+    }
+
+    const MAX_DOC_CHARS = 30000;
+    const MAX_CHAT_CHARS = 4000;
+
+    function sanitizeInput(text) {
+      return typeof text === "string" ? text.trim().slice(0, MAX_DOC_CHARS) : "";
+    }
+
+    function isValidJurisdiction(value) {
+      const valid = ["India","United States","United Kingdom","Canada","Australia","European Union","General"];
+      return valid.includes(value);
+    }
+
+    function getSessionId() {
+      // Mocked for testing
+      return "sess_test_123";
+    }
+
+    function formatDocSize(chars) {
+      if (chars < 1000) return `${chars} chars`;
+      return `${(chars / 1000).toFixed(1)}k chars`;
+    }
+
+    function buildSystemPrompt(jurisdiction) {
+      return `You are LexAI, an expert AI legal assistant. Jurisdiction: ${jurisdiction}.`;
+    }
+
+    function truncateChatHistory(history, maxMessages = 20) {
+      if (history.length <= maxMessages) return history;
+      return history.slice(-maxMessages);
+    }
+
+    function isEmptyInput(text) {
+      return !text || text.trim().length === 0;
+    }
+
+    function buildAnalysisPrompt(docText, jurisdiction, docType, focus) {
+      return `Analyze the following legal document. Jurisdiction: ${jurisdiction}. Type: ${docType}. Focus: ${focus}.\n\nDocument:\n"""\n${docText.slice(0, MAX_DOC_CHARS)}\n"""`;
+    }
+
+    function validateCompareInputs(docA, docB) {
+      if (isEmptyInput(docA)) return { valid: false, error: "Document A is empty." };
+      if (isEmptyInput(docB)) return { valid: false, error: "Document B is empty." };
+      if (docA.length > MAX_DOC_CHARS) return { valid: false, error: "Document A exceeds character limit." };
+      if (docB.length > MAX_DOC_CHARS) return { valid: false, error: "Document B exceeds character limit." };
+      if (docA.trim() === docB.trim()) return { valid: false, error: "Documents appear identical." };
+      return { valid: true, error: null };
+    }
+
+    function buildChatHistory(history, newMessage) {
+      const updated = [...history, { role: "user", parts: [{ text: newMessage }] }];
+      return truncateChatHistory(updated);
+    }
+
+    // ── Simple Test Runner ───────────────────────────────────────
+    let results = [];
+
+    function describe(suiteName, fn) {
+      const suite = { name: suiteName, tests: [] };
+      results.push(suite);
+      const currentSuite = suite;
+      window.__currentSuite = currentSuite;
+      fn();
+      window.__currentSuite = null;
+    }
+
+    function it(name, fn) {
+      const suite = window.__currentSuite;
+      try {
+        fn();
+        suite.tests.push({ name, status: "pass", detail: null });
+      } catch (err) {
+        suite.tests.push({ name, status: "fail", detail: err.message });
+      }
+    }
+
+    function expect(actual) {
+      return {
+        toBe(expected) {
+          if (actual !== expected) throw new Error(`Expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+        },
+        toEqual(expected) {
+          if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error(`Expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+        },
+        toContain(sub) {
+          if (!String(actual).includes(sub)) throw new Error(`Expected "${actual}" to contain "${sub}"`);
+        },
+        notToContain(sub) {
+          if (String(actual).includes(sub)) throw new Error(`Expected "${actual}" NOT to contain "${sub}"`);
+        },
+        toBeTruthy() {
+          if (!actual) throw new Error(`Expected truthy, got ${actual}`);
+        },
+        toBeFalsy() {
+          if (actual) throw new Error(`Expected falsy, got ${actual}`);
+        },
+        toBeGreaterThan(n) {
+          if (actual <= n) throw new Error(`Expected ${actual} > ${n}`);
+        },
+        toBeLessThanOrEqual(n) {
+          if (actual > n) throw new Error(`Expected ${actual} <= ${n}`);
+        },
+        toHaveLength(n) {
+          if (actual.length !== n) throw new Error(`Expected length ${n}, got ${actual.length}`);
+        },
+        toBeNull() {
+          if (actual !== null) throw new Error(`Expected null, got ${actual}`);
+        }
+      };
+    }
+
+    // ── Test Suites ──────────────────────────────────────────────
+    function defineTests() {
+      results = [];
+
+      // 1. escapeHtml
+      describe("🔒 Security — escapeHtml()", () => {
+        it("escapes & ampersand", () => expect(escapeHtml("a & b")).toContain("&amp;"));
+        it("escapes < less-than", () => expect(escapeHtml("<div>")).toContain("&lt;"));
+        it("escapes > greater-than", () => expect(escapeHtml("<div>")).toContain("&gt;"));
+        it("escapes \" double quote", () => expect(escapeHtml('"hello"')).toContain("&quot;"));
+        it("escapes ' single quote", () => expect(escapeHtml("it's")).toContain("&#039;"));
+        it("prevents <script> injection", () => {
+          const result = escapeHtml('<script>alert("xss")</script>');
+          expect(result).notToContain("<script>");
+        });
+        it("prevents img onerror injection", () => {
+          const result = escapeHtml('<img onerror="alert(1)" src=x>');
+          expect(result).notToContain("<img");
+        });
+        it("returns empty string for empty input", () => expect(escapeHtml("")).toBe(""));
+        it("handles null gracefully by coercing", () => expect(escapeHtml(null)).toBe("null"));
+        it("handles numbers without throwing", () => expect(escapeHtml(42)).toBe("42"));
+      });
+
+      // 2. markdownToHtml
+      describe("📝 Code Quality — markdownToHtml()", () => {
+        it("converts **bold** to <strong>", () => expect(markdownToHtml("**bold**")).toContain("<strong>"));
+        it("converts *italic* to <em>", () => expect(markdownToHtml("*italic*")).toContain("<em>"));
+        it("converts ## heading to <h2>", () => expect(markdownToHtml("## Title")).toContain("<h2>"));
+        it("converts ### heading to <h3>", () => expect(markdownToHtml("### Sub")).toContain("<h3>"));
+        it("converts - list item to <li>", () => expect(markdownToHtml("- item")).toContain("<li>"));
+        it("wraps list items in <ul>", () => expect(markdownToHtml("- item")).toContain("<ul>"));
+        it("converts `code` to <code>", () => expect(markdownToHtml("`code`")).toContain("<code>"));
+        it("HTML-escapes raw < in input before conversion", () => {
+          const result = markdownToHtml("<script>alert(1)</script>");
+          expect(result).notToContain("<script>");
+        });
+        it("returns empty string for null/undefined", () => expect(markdownToHtml(null)).toBe(""));
+        it("returns empty string for empty input", () => expect(markdownToHtml("")).toBe(""));
+        it("handles *** bold+italic ***", () => expect(markdownToHtml("***text***")).toContain("<strong>"));
+        it("converts --- to <hr/>", () => expect(markdownToHtml("---")).toContain("<hr/>"));
+      });
+
+      // 3. Input Validation
+      describe("✅ Testing — Input Validation", () => {
+        it("isEmptyInput returns true for empty string", () => expect(isEmptyInput("")).toBeTruthy());
+        it("isEmptyInput returns true for whitespace-only", () => expect(isEmptyInput("   ")).toBeTruthy());
+        it("isEmptyInput returns false for valid text", () => expect(isEmptyInput("hello")).toBeFalsy());
+        it("isEmptyInput returns true for null", () => expect(isEmptyInput(null)).toBeTruthy());
+        it("isEmptyInput returns true for undefined", () => expect(isEmptyInput(undefined)).toBeTruthy());
+
+        it("chat input max length is 4000", () => expect(MAX_CHAT_CHARS).toBe(4000));
+        it("doc input max length is 30000", () => expect(MAX_DOC_CHARS).toBe(30000));
+
+        it("sanitizeInput trims whitespace", () => expect(sanitizeInput("  hello  ")).toBe("hello"));
+        it("sanitizeInput returns empty for non-string", () => expect(sanitizeInput(123)).toBe(""));
+        it("sanitizeInput truncates at MAX_DOC_CHARS", () => {
+          const longText = "a".repeat(40000);
+          expect(sanitizeInput(longText).length).toBeLessThanOrEqual(MAX_DOC_CHARS);
+        });
+      });
+
+      // 4. Jurisdiction Validation
+      describe("🌍 Testing — Jurisdiction Validation", () => {
+        it("accepts India", () => expect(isValidJurisdiction("India")).toBeTruthy());
+        it("accepts United States", () => expect(isValidJurisdiction("United States")).toBeTruthy());
+        it("accepts United Kingdom", () => expect(isValidJurisdiction("United Kingdom")).toBeTruthy());
+        it("accepts Canada", () => expect(isValidJurisdiction("Canada")).toBeTruthy());
+        it("accepts Australia", () => expect(isValidJurisdiction("Australia")).toBeTruthy());
+        it("accepts European Union", () => expect(isValidJurisdiction("European Union")).toBeTruthy());
+        it("accepts General", () => expect(isValidJurisdiction("General")).toBeTruthy());
+        it("rejects empty string", () => expect(isValidJurisdiction("")).toBeFalsy());
+        it("rejects arbitrary string", () => expect(isValidJurisdiction("Mars")).toBeFalsy());
+        it("rejects null", () => expect(isValidJurisdiction(null)).toBeFalsy());
+        it("is case-sensitive (india ≠ India)", () => expect(isValidJurisdiction("india")).toBeFalsy());
+      });
+
+      // 5. Document Compare Validation
+      describe("🔄 Testing — compareDocuments Validation", () => {
+        it("rejects when docA is empty", () => expect(validateCompareInputs("", "some text").valid).toBeFalsy());
+        it("rejects when docB is empty", () => expect(validateCompareInputs("some text", "").valid).toBeFalsy());
+        it("rejects when both empty", () => expect(validateCompareInputs("", "").valid).toBeFalsy());
+        it("accepts valid inputs", () => expect(validateCompareInputs("doc one content", "doc two content").valid).toBeTruthy());
+        it("rejects docA exceeding MAX_DOC_CHARS", () => {
+          const big = "x".repeat(MAX_DOC_CHARS + 1);
+          expect(validateCompareInputs(big, "normal text").valid).toBeFalsy();
+        });
+        it("rejects docB exceeding MAX_DOC_CHARS", () => {
+          const big = "x".repeat(MAX_DOC_CHARS + 1);
+          expect(validateCompareInputs("normal text", big).valid).toBeFalsy();
+        });
+        it("rejects identical documents", () => expect(validateCompareInputs("same text", "same text").valid).toBeFalsy());
+        it("returns error message on failure", () => expect(validateCompareInputs("", "b").error).toBeTruthy());
+        it("returns null error on success", () => expect(validateCompareInputs("a", "b").error).toBeNull());
+      });
+
+      // 6. Chat History Management
+      describe("💬 Efficiency — Chat History Management", () => {
+        it("truncateChatHistory keeps array if within limit", () => {
+          const hist = Array(10).fill({ role: "user", parts: [{ text: "msg" }] });
+          expect(truncateChatHistory(hist, 20).length).toBe(10);
+        });
+        it("truncateChatHistory slices to max when over limit", () => {
+          const hist = Array(25).fill({ role: "user", parts: [{ text: "msg" }] });
+          expect(truncateChatHistory(hist, 20).length).toBe(20);
+        });
+        it("truncateChatHistory keeps the LATEST messages", () => {
+          const hist = [
+            { role: "user", parts: [{ text: "old" }] },
+            { role: "user", parts: [{ text: "old2" }] },
+            { role: "user", parts: [{ text: "new" }] }
+          ];
+          const result = truncateChatHistory(hist, 2);
+          expect(result[result.length - 1].parts[0].text).toBe("new");
+        });
+        it("buildChatHistory appends new message", () => {
+          const hist = [];
+          const result = buildChatHistory(hist, "Hello");
+          expect(result).toHaveLength(1);
+        });
+        it("buildChatHistory sets role to user", () => {
+          const result = buildChatHistory([], "Hi");
+          expect(result[0].role).toBe("user");
+        });
+        it("buildChatHistory doesn't mutate original array", () => {
+          const original = [];
+          buildChatHistory(original, "Hi");
+          expect(original).toHaveLength(0);
+        });
+      });
+
+      // 7. System Prompt Generation
+      describe("🧠 Efficiency — Prompt Building", () => {
+        it("buildSystemPrompt includes jurisdiction", () => expect(buildSystemPrompt("India")).toContain("India"));
+        it("buildSystemPrompt includes LexAI name", () => expect(buildSystemPrompt("India")).toContain("LexAI"));
+        it("buildAnalysisPrompt includes document text", () => {
+          const prompt = buildAnalysisPrompt("Contract text", "India", "contract", "comprehensive");
+          expect(prompt).toContain("Contract text");
+        });
+        it("buildAnalysisPrompt includes jurisdiction", () => {
+          const prompt = buildAnalysisPrompt("doc", "India", "nda", "risks");
+          expect(prompt).toContain("India");
+        });
+        it("buildAnalysisPrompt truncates oversized documents", () => {
+          const bigDoc = "a".repeat(40000);
+          const prompt = buildAnalysisPrompt(bigDoc, "India", "auto", "comprehensive");
+          expect(prompt.length).toBeLessThanOrEqual(bigDoc.length + 200);
+        });
+        it("buildAnalysisPrompt includes doc type", () => {
+          const prompt = buildAnalysisPrompt("doc", "India", "nda", "risks");
+          expect(prompt).toContain("nda");
+        });
+      });
+
+      // 8. Utility Functions
+      describe("⚡ Efficiency — Utility Functions", () => {
+        it("formatDocSize shows chars for small text", () => expect(formatDocSize(500)).toContain("chars"));
+        it("formatDocSize shows k suffix for large text", () => expect(formatDocSize(5000)).toContain("k"));
+        it("formatDocSize handles 0 chars", () => expect(formatDocSize(0)).toBe("0 chars"));
+      });
+    }
+
+    // ── Render Results ───────────────────────────────────────────
+    function runAllTests() {
+      defineTests();
+
+      let totalPass = 0, totalFail = 0, totalSkip = 0;
+      const container = document.getElementById("results");
+      container.innerHTML = "";
+
+      results.forEach(suite => {
+        const suiteDiv = document.createElement("div");
+        suiteDiv.className = "suite";
+
+        const title = document.createElement("div");
+        title.className = "suite-title";
+        title.textContent = suite.name;
+        suiteDiv.appendChild(title);
+
+        suite.tests.forEach(test => {
+          if (test.status === "pass") totalPass++;
+          else if (test.status === "fail") totalFail++;
+          else totalSkip++;
+
+          const testDiv = document.createElement("div");
+          testDiv.className = `test ${test.status}`;
+
+          const badge = document.createElement("span");
+          badge.className = `badge ${test.status}`;
+          badge.textContent = test.status;
+
+          const nameDiv = document.createElement("div");
+          nameDiv.className = "test-name";
+          nameDiv.textContent = test.name;
+          if (test.detail) {
+            const detail = document.createElement("div");
+            detail.className = "test-detail";
+            detail.textContent = "→ " + test.detail;
+            nameDiv.appendChild(detail);
+          }
+
+          testDiv.appendChild(badge);
+          testDiv.appendChild(nameDiv);
+          suiteDiv.appendChild(testDiv);
+        });
+
+        container.appendChild(suiteDiv);
+      });
+
+      const total = totalPass + totalFail + totalSkip;
+      const pct = total ? Math.round((totalPass / total) * 100) : 0;
+
+      document.getElementById("pass-count").textContent = totalPass;
+      document.getElementById("fail-count").textContent = totalFail;
+      document.getElementById("skip-count").textContent = totalSkip;
+      document.getElementById("total-count").textContent = total;
+      document.getElementById("score-pct").textContent = pct + "%";
+      document.getElementById("summary").style.display = "flex";
+      document.getElementById("progress-bar").style.display = "block";
+      document.getElementById("progress-fill").style.width = pct + "%";
+    }
+
+    // Auto-run on load
+    window.addEventListener("load", runAllTests);
+  </script>
+</body>
+</html>

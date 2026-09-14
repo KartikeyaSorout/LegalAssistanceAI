@@ -1,14 +1,76 @@
-// ============================================================
-// app.js — LexAI Core Application Logic
-// Gemini API powered Legal Assistance Platform
-// ============================================================
+/**
+ * @fileoverview LexAI — Core Application Logic
+ * @description  GenAI-powered Legal Assistance Platform using Gemini 2.0 Flash.
+ *               Provides: Legal Chat, Document Analysis, Document Comparison,
+ *               Know Your Rights, and Legal Template Generation.
+ * @version      2.0.0
+ * @license      MIT
+ */
 
 "use strict";
 
 // ── Configuration ─────────────────────────────────────────────
+/** @constant {string} Gemini API key — scoped to this Firebase project domain */
 const GEMINI_API_KEY = "AIzaSyDw43ikjdi-5KmcDLKWXYcoPcWXW_CfUTQ";
+/** @constant {string} Gemini model identifier */
 const GEMINI_MODEL   = "gemini-2.0-flash";
+/** @constant {string} Full Gemini REST endpoint */
 const GEMINI_URL     = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+
+// ── Rate Limiter ───────────────────────────────────────────────
+/** @constant {number} Max API calls per feature per minute */
+const RATE_LIMIT_MAX = 10;
+
+/**
+ * Client-side rate limiter using sessionStorage.
+ * Prevents abuse and controls API costs.
+ * @param {string} feature - Feature identifier (e.g. 'chat', 'analyze')
+ * @returns {{allowed: boolean, remaining: number}}
+ */
+function checkRateLimit(feature) {
+  const key   = `lexai_ratelimit_${feature}_${new Date().toISOString().slice(0, 16)}`; // per-minute bucket
+  const count = parseInt(sessionStorage.getItem(key) || "0", 10);
+  if (count >= RATE_LIMIT_MAX) return { allowed: false, remaining: 0 };
+  sessionStorage.setItem(key, String(count + 1));
+  return { allowed: true, remaining: RATE_LIMIT_MAX - count - 1 };
+}
+
+// ── Response Cache ─────────────────────────────────────────────
+/** In-memory cache for deterministic AI responses (rights / templates) */
+const responseCache = new Map();
+
+/**
+ * Build a cache key from feature + parameters.
+ * @param {string} feature
+ * @param {...string} parts
+ * @returns {string}
+ */
+function cacheKey(feature, ...parts) {
+  return `${feature}::${parts.join("::")}`;
+}
+
+/**
+ * Retrieve a cached AI response.
+ * @param {string} key
+ * @returns {string|null}
+ */
+function getCached(key) {
+  return responseCache.has(key) ? responseCache.get(key) : null;
+}
+
+/**
+ * Store an AI response in the cache.
+ * @param {string} key
+ * @param {string} value
+ */
+function setCache(key, value) {
+  if (responseCache.size > 50) {
+    // Evict oldest entry to prevent unbounded memory growth
+    const firstKey = responseCache.keys().next().value;
+    responseCache.delete(firstKey);
+  }
+  responseCache.set(key, value);
+}
 
 // ── DOM References ────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -258,6 +320,13 @@ async function sendMessage() {
     return;
   }
 
+  // Rate limiting: max 10 chat messages per minute
+  const rl = checkRateLimit("chat");
+  if (!rl.allowed) {
+    showToast("Too many requests. Please wait a moment before sending another message.", "error");
+    return;
+  }
+
   const jurisdiction = jurisdictionSel.value;
   const fullPrompt = `[Jurisdiction: ${jurisdiction}]\n\n${text}`;
 
@@ -406,6 +475,10 @@ async function analyzeDocument() {
   if (text.length > MAX_DOC_CHARS) { showToast(`Document too large (max ${MAX_DOC_CHARS.toLocaleString()} characters). Please paste a shorter excerpt.`, "error"); return; }
   if (isLoading) return;
 
+  // Rate limiting
+  const rl = checkRateLimit("analyze");
+  if (!rl.allowed) { showToast("Too many analysis requests. Please wait a moment.", "error"); return; }
+
   isLoading = true;
   analyzeBtn.disabled = true;
   analyzeBtn.innerHTML = `<div class="loading-spinner" style="width:16px;height:16px;border-width:2px;"></div> Analyzing...`;
@@ -496,6 +569,10 @@ async function compareDocuments() {
   if (a.length > MAX_DOC_CHARS || b.length > MAX_DOC_CHARS) { showToast(`Each document must be under ${MAX_DOC_CHARS.toLocaleString()} characters.`, "error"); return; }
   if (isLoading) return;
 
+  // Rate limiting
+  const rl = checkRateLimit("compare");
+  if (!rl.allowed) { showToast("Too many comparison requests. Please wait a moment.", "error"); return; }
+
   isLoading = true;
   compareBtn.disabled = true;
   compareBtn.innerHTML = `<div class="loading-spinner" style="width:16px;height:16px;border-width:2px;"></div> Comparing...`;
@@ -570,13 +647,27 @@ async function loadRights(scenario, cardEl) {
   const info = rightsData[scenario];
   const jurisdiction = jurisdictionSel.value;
 
+  // Check cache first (same scenario + jurisdiction = identical response)
+  const ck = cacheKey("rights", scenario, jurisdiction);
+  const cached = getCached(ck);
+
   // Highlight active card
   document.querySelectorAll(".rights-card").forEach(c => c.classList.remove("active"));
   cardEl.classList.add("active");
 
   rightsOutput.classList.remove("hidden");
-  rightsOutput.innerHTML = `<div class="loading-state"><div class="loading-spinner"></div><p>Loading your ${info.title} information...</p></div>`;
   rightsOutput.scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+  if (cached) {
+    rightsOutput.innerHTML = cached;
+    return;
+  }
+
+  // Rate limiting
+  const rl = checkRateLimit("rights");
+  if (!rl.allowed) { showToast("Too many requests. Please wait a moment.", "error"); return; }
+
+  rightsOutput.innerHTML = `<div class="loading-state"><div class="loading-spinner"></div><p>Loading your ${info.title} information...</p></div>`;
 
   isLoading = true;
 
@@ -598,9 +689,9 @@ Make it practical, clear, and accessible to someone with no legal background.`;
       `You are LexAI, an expert in ${info.title} law. Provide comprehensive, jurisdiction-specific information in plain English. Current jurisdiction: ${jurisdiction}.`,
       prompt
     );
-    rightsOutput.innerHTML = `
+    const html = `
       <div style="margin-bottom:20px;display:flex;align-items:center;gap:12px;">
-        <span style="font-size:36px;">${info.icon}</span>
+        <span style="font-size:36px;" aria-hidden="true">${info.icon}</span>
         <div>
           <h2 style="font-family:var(--font-serif);font-size:24px;color:var(--color-primary-light);">${info.title}</h2>
           <p style="font-size:13px;color:var(--color-text-secondary);">Jurisdiction: ${jurisdiction}</p>
@@ -610,6 +701,9 @@ Make it practical, clear, and accessible to someone with no legal background.`;
       <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--color-border);font-size:11px;color:var(--color-text-muted);">
         ⚠️ This information is general in nature and may not apply to your specific situation. Laws vary by region and change over time. Consult a qualified lawyer for advice specific to your case.
       </div>`;
+    rightsOutput.innerHTML = html;
+    // Cache the rendered HTML to avoid repeat API calls for same scenario+jurisdiction
+    setCache(ck, html);
   } catch (err) {
     const safeMsg = escapeHtml(err.message || "Unknown error");
     rightsOutput.innerHTML = `<div class="output-placeholder"><div class="placeholder-icon">⚠️</div><p>Failed to load: ${safeMsg}</p></div>`;
