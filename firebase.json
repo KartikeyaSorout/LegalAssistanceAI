@@ -1,4 +1,13 @@
 {
+  "functions": {
+    "source": "functions",
+    "ignore": [
+      "node_modules",
+      ".git",
+      "firebase-debug.log",
+      "firebase-debug.*.log"
+    ]
+  },
   "hosting": {
     "public": ".",
     "ignore": [
@@ -6,9 +15,14 @@
       "**/.*",
       "**/node_modules/**",
       "README.md",
-      ".firebaserc"
+      ".firebaserc",
+      "functions/**"
     ],
     "rewrites": [
+      {
+        "source": "/api/gemini",
+        "function": "geminiProxy"
+      },
       {
         "source": "**",
         "destination": "/index.html"
