@@ -143,8 +143,9 @@ function setupSidebar() {
 }
 
 function toggleDesktopSidebar() {
-  sidebar.classList.toggle("collapsed");
+  const isCollapsed = sidebar.classList.toggle("collapsed");
   mainContent.classList.toggle("expanded");
+  sidebarToggle.setAttribute("aria-expanded", String(!isCollapsed));
 }
 function openMobileSidebar() {
   sidebar.classList.add("mobile-open");
@@ -252,6 +253,10 @@ function setupChat() {
 async function sendMessage() {
   const text = chatInput.value.trim();
   if (!text || isLoading) return;
+  if (text.length > 4000) {
+    showToast("Message too long (max 4,000 characters). Please shorten your question.", "error");
+    return;
+  }
 
   const jurisdiction = jurisdictionSel.value;
   const fullPrompt = `[Jurisdiction: ${jurisdiction}]\n\n${text}`;
@@ -275,7 +280,7 @@ async function sendMessage() {
     // Update history for multi-turn
     chatHistory.push({ role: "user",  parts: [{ text: fullPrompt }] });
     chatHistory.push({ role: "model", parts: [{ text: aiText }] });
-    if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20); // keep last 10 turns
+    if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20); // keep last 10 turns (20 messages = 10 user + 10 model)
 
     typingEl.remove();
     appendMessage("assistant", aiText);
@@ -322,9 +327,11 @@ function appendMessage(role, text) {
 function appendTypingIndicator() {
   const div = document.createElement("div");
   div.className = "typing-indicator";
+  div.setAttribute("aria-label", "AI is thinking");
+  div.setAttribute("role", "status");
   div.innerHTML = `
-    <div class="message-avatar" style="background:rgba(99,102,241,0.15);border:1px solid rgba(255,255,255,0.08);width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;">⚖️</div>
-    <div class="typing-dots">
+    <div class="message-avatar" style="background:rgba(99,102,241,0.15);border:1px solid rgba(255,255,255,0.08);width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;" aria-hidden="true">⚖️</div>
+    <div class="typing-dots" aria-hidden="true">
       <div class="typing-dot"></div>
       <div class="typing-dot"></div>
       <div class="typing-dot"></div>
@@ -390,9 +397,13 @@ function showAnalyzePlaceholder() {
   analyzeOutput.classList.add("hidden");
 }
 
+// Max ~30,000 chars ≈ ~7,500 tokens — safe for Gemini 2.0 Flash 1M context
+const MAX_DOC_CHARS = 30000;
+
 async function analyzeDocument() {
   const text = docInput.value.trim();
   if (!text) { showToast("Please paste a document to analyze.", "error"); return; }
+  if (text.length > MAX_DOC_CHARS) { showToast(`Document too large (max ${MAX_DOC_CHARS.toLocaleString()} characters). Please paste a shorter excerpt.`, "error"); return; }
   if (isLoading) return;
 
   isLoading = true;
@@ -431,7 +442,8 @@ Format each section clearly. Use bold for emphasis. Be specific and reference ac
     );
     renderAnalysisOutput(aiText, text);
   } catch (err) {
-    analyzeOutput.innerHTML = `<div class="output-placeholder"><div class="placeholder-icon">⚠️</div><p>Analysis failed: ${err.message}</p></div>`;
+    const safeMsg = escapeHtml(err.message || "Unknown error");
+    analyzeOutput.innerHTML = `<div class="output-placeholder"><div class="placeholder-icon">⚠️</div><p>Analysis failed: ${safeMsg}</p></div>`;
     showToast("Analysis failed: " + err.message, "error");
   } finally {
     isLoading = false;
@@ -440,7 +452,8 @@ Format each section clearly. Use bold for emphasis. Be specific and reference ac
   }
 }
 
-function renderAnalysisOutput(text) {
+function renderAnalysisOutput(aiMarkdown) {
+  const text = aiMarkdown;
   analyzeOutput.innerHTML = `
     <div class="analysis-content" style="font-size:14px;line-height:1.8;color:var(--color-text-primary);">
       ${markdownToHtml(text)}
@@ -480,6 +493,7 @@ async function compareDocuments() {
   const a = docA.value.trim();
   const b = docB.value.trim();
   if (!a || !b) { showToast("Please provide both documents to compare.", "error"); return; }
+  if (a.length > MAX_DOC_CHARS || b.length > MAX_DOC_CHARS) { showToast(`Each document must be under ${MAX_DOC_CHARS.toLocaleString()} characters.`, "error"); return; }
   if (isLoading) return;
 
   isLoading = true;
@@ -523,7 +537,8 @@ Be specific. Quote exact changed text where relevant.`;
         ⚠️ Informational only. Not legal advice. Consult a qualified lawyer before accepting any legal document.
       </div>`;
   } catch (err) {
-    compareOutput.innerHTML = `<div class="output-placeholder"><div class="placeholder-icon">⚠️</div><p>Comparison failed: ${err.message}</p></div>`;
+    const safeMsg = escapeHtml(err.message || "Unknown error");
+    compareOutput.innerHTML = `<div class="output-placeholder"><div class="placeholder-icon">⚠️</div><p>Comparison failed: ${safeMsg}</p></div>`;
     showToast("Comparison failed: " + err.message, "error");
   } finally {
     isLoading = false;
@@ -596,7 +611,8 @@ Make it practical, clear, and accessible to someone with no legal background.`;
         ⚠️ This information is general in nature and may not apply to your specific situation. Laws vary by region and change over time. Consult a qualified lawyer for advice specific to your case.
       </div>`;
   } catch (err) {
-    rightsOutput.innerHTML = `<div class="output-placeholder"><div class="placeholder-icon">⚠️</div><p>Failed to load: ${err.message}</p></div>`;
+    const safeMsg = escapeHtml(err.message || "Unknown error");
+    rightsOutput.innerHTML = `<div class="output-placeholder"><div class="placeholder-icon">⚠️</div><p>Failed to load: ${safeMsg}</p></div>`;
     showToast("Failed: " + err.message, "error");
   } finally {
     isLoading = false;
@@ -754,6 +770,9 @@ Format as a clean, professional document. Use proper legal formatting.`;
 
     templateOutput.classList.remove("hidden");
     templateOutput.innerHTML = escapeHtml(aiText);
+
+    // Remove any previously generated action buttons to prevent duplicates
+    document.querySelectorAll(".template-output-actions").forEach(el => el.remove());
 
     // Add copy and download buttons
     const actionsDiv = document.createElement("div");

@@ -3,16 +3,22 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0a0c12" />
+  <meta name="robots" content="index, follow" />
   <title>LexAI — AI Legal Assistance Platform</title>
   <meta name="description" content="LexAI is a GenAI-powered legal assistant that helps you understand, compare, and navigate legal documents with ease. Get plain-English explanations of complex legal terms instantly." />
   <meta property="og:title" content="LexAI — AI Legal Assistance Platform" />
   <meta property="og:description" content="Understand complex legal documents with AI-powered assistance." />
+  <meta property="og:type" content="website" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <!-- Skip to main content for keyboard/screen reader users -->
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
   <!-- Loading Screen -->
   <div id="loading-screen" class="loading-screen">
     <div class="loader-content">
@@ -34,8 +40,8 @@
         <span class="logo-icon">⚖️</span>
         <span class="logo-text">LexAI</span>
       </div>
-      <button id="sidebar-toggle" class="icon-btn" title="Toggle sidebar" aria-label="Toggle sidebar">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      <button id="sidebar-toggle" class="icon-btn" title="Toggle sidebar" aria-label="Toggle sidebar" aria-expanded="true" aria-controls="sidebar">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
     </div>
 
