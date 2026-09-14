@@ -830,11 +830,17 @@ async function generateTemplate() {
   const values = {};
   def.fields.forEach(f => {
     const el = $(`tmpl-field-${f.id}`);
-    values[f.id] = el?.value?.trim() || `[${f.label}]`;
+    // Sanitize each field value to prevent XSS and prompt injection
+    const raw = el?.value?.trim() || "";
+    values[f.id] = raw ? sanitizeTemplateInput(sanitizePromptInput(raw)) : `[${f.label}]`;
   });
 
   const jurisdiction = jurisdictionSel.value;
   const fieldSummary = def.fields.map(f => `${f.label}: ${values[f.id]}`).join("\n");
+
+  // Rate limiting for template generation
+  const rl = checkRateLimit("template");
+  if (!rl.allowed) { showToast("Too many generation requests. Please wait a moment.", "error"); return; }
 
   isLoading = true;
   generateTemplateBtn.disabled = true;
@@ -951,11 +957,51 @@ function markdownToHtml(text) {
   return result.join("\n");
 }
 
+/**
+ * Escape HTML special characters to prevent XSS.
+ * Safely coerces any type to string before processing.
+ * @param {*} text - Any value to escape
+ * @returns {string} HTML-safe string
+ */
 function escapeHtml(text) {
-  return text
+  return String(text == null ? "" : text)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+/**
+ * Sanitize a user-provided template form field value.
+ * Strips angle brackets, limits length, collapses excessive whitespace.
+ * @param {string} value - Raw field value from input/textarea
+ * @returns {string} Sanitized value safe for AI prompt injection
+ */
+function sanitizeTemplateInput(value) {
+  if (typeof value !== "string") return "";
+  return value
+    .trim()
+    .slice(0, 500)                    // max 500 chars per field
+    .replace(/[<>]/g, "")            // strip angle brackets
+    .replace(/[\u0000-\u001F]/g, " ") // strip control characters
+    .replace(/\s{3,}/g, "  ");        // collapse excessive whitespace
+}
+
+/**
+ * Defend against prompt injection in user-supplied text.
+ * Wraps known injection patterns so they cannot override system instructions.
+ * @param {string} text - Raw user text
+ * @returns {string} Sanitized text safe to embed in AI prompt
+ */
+function sanitizePromptInput(text) {
+  if (typeof text !== "string") return "";
+  return text
+    .replace(/ignore (all |previous |prior |above )?instructions?/gi, "[flagged-text]")
+    .replace(/you are now/gi, "[flagged-text]")
+    .replace(/system prompt/gi, "[system]")
+    .replace(/\[INST\]/g, "[INST_SAFE]")
+    .replace(/\[SYS\]/g, "[SYS_SAFE]");
 }
 
 function autoResizeTextarea(el) {
