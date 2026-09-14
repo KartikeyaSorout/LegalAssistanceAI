@@ -29,7 +29,7 @@
      * Function proxy (functions/index.js) so the API key is never
      * exposed to the client. Set to true after deploying functions/.
      */
-    USE_CLOUD_FUNCTION: true,
+    USE_CLOUD_FUNCTION: false,
 
     /** Deployed Cloud Function endpoint (used when USE_CLOUD_FUNCTION = true) */
     CLOUD_FUNCTION_URL: "https://us-central1-legalassistanceai.cloudfunctions.net/geminiProxy",
