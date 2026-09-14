@@ -2,24 +2,26 @@
  * @fileoverview LexAI — Document Analyzer Feature
  * @module       LexAI.Features.Analyze
  */
-(function (LexAI) {
-  "use strict";
 
-  const { $ } = LexAI.UI;
-  
-  const docInput = $("doc-input");
-  const docType = $("doc-type");
-  const analyzeFocus = $("analyze-focus");
-  const analyzeBtn = $("analyze-btn");
-  const analyzePlaceholder = $("analyze-placeholder");
-  const analyzeOutput = $("analyze-output");
-  const loadSampleDoc = $("load-sample-doc");
-  const clearDoc = $("clear-doc");
-  const jurisdictionSel = $("jurisdiction-select");
+import { $, showToast } from '../ui.js';
+import Config from '../config.js';
+import { checkRateLimit, validateDocInput, escapeHtml } from '../security.js';
+import { callGemini } from '../api.js';
+import { markdownToHtml } from '../utils.js';
 
-  let isLoading = false;
+const docInput = $("doc-input");
+const docType = $("doc-type");
+const analyzeFocus = $("analyze-focus");
+const analyzeBtn = $("analyze-btn");
+const analyzePlaceholder = $("analyze-placeholder");
+const analyzeOutput = $("analyze-output");
+const loadSampleDoc = $("load-sample-doc");
+const clearDoc = $("clear-doc");
+const jurisdictionSel = $("jurisdiction-select");
 
-  const SAMPLE_DOC = `NON-DISCLOSURE AGREEMENT
+let isLoading = false;
+
+const SAMPLE_DOC = `NON-DISCLOSURE AGREEMENT
 
 This Non-Disclosure Agreement ("Agreement") is entered into as of January 1, 2025, between XYZ Corp ("Disclosing Party") and ABC Ltd ("Receiving Party").
 
@@ -35,44 +37,44 @@ This Non-Disclosure Agreement ("Agreement") is entered into as of January 1, 202
 
 6. SURVIVAL: Obligations under this Agreement shall survive termination for 10 years.`;
 
-  function setup() {
-    loadSampleDoc?.addEventListener("click", () => { docInput.value = SAMPLE_DOC; });
-    clearDoc?.addEventListener("click", () => { docInput.value = ""; showAnalyzePlaceholder(); });
-    analyzeBtn?.addEventListener("click", analyzeDocument);
+export function setup() {
+  loadSampleDoc?.addEventListener("click", () => { docInput.value = SAMPLE_DOC; });
+  clearDoc?.addEventListener("click", () => { docInput.value = ""; showAnalyzePlaceholder(); });
+  analyzeBtn?.addEventListener("click", analyzeDocument);
+}
+
+function showAnalyzePlaceholder() {
+  analyzePlaceholder.classList.remove("hidden");
+  analyzeOutput.classList.add("hidden");
+}
+
+async function analyzeDocument() {
+  const text = docInput.value.trim();
+  if (!text) { showToast("Please paste a document to analyze.", "error"); return; }
+  
+  if (!validateDocInput(text)) { 
+    showToast(`Document too large (max ${Config.MAX_DOC_CHARS.toLocaleString()} characters). Please paste a shorter excerpt.`, "error"); 
+    return; 
   }
+  
+  if (isLoading) return;
 
-  function showAnalyzePlaceholder() {
-    analyzePlaceholder.classList.remove("hidden");
-    analyzeOutput.classList.add("hidden");
-  }
+  // Rate limiting
+  const rl = checkRateLimit("analyze");
+  if (!rl.allowed) { showToast("Too many analysis requests. Please wait a moment.", "error"); return; }
 
-  async function analyzeDocument() {
-    const text = docInput.value.trim();
-    if (!text) { LexAI.UI.showToast("Please paste a document to analyze.", "error"); return; }
-    
-    if (!LexAI.Security.validateDocInput(text)) { 
-      LexAI.UI.showToast(`Document too large (max ${LexAI.Config.MAX_DOC_CHARS.toLocaleString()} characters). Please paste a shorter excerpt.`, "error"); 
-      return; 
-    }
-    
-    if (isLoading) return;
+  isLoading = true;
+  analyzeBtn.disabled = true;
+  analyzeBtn.innerHTML = `<div class="loading-spinner" style="width:16px;height:16px;border-width:2px;"></div> Analyzing...`;
+  analyzePlaceholder.classList.add("hidden");
+  analyzeOutput.classList.remove("hidden");
+  analyzeOutput.innerHTML = `<div class="loading-state"><div class="loading-spinner"></div><p>AI is reviewing your document...</p></div>`;
 
-    // Rate limiting
-    const rl = LexAI.Security.checkRateLimit("analyze");
-    if (!rl.allowed) { LexAI.UI.showToast("Too many analysis requests. Please wait a moment.", "error"); return; }
+  const jurisdiction = jurisdictionSel.value;
+  const focus = analyzeFocus.value;
+  const type  = docType.value;
 
-    isLoading = true;
-    analyzeBtn.disabled = true;
-    analyzeBtn.innerHTML = `<div class="loading-spinner" style="width:16px;height:16px;border-width:2px;"></div> Analyzing...`;
-    analyzePlaceholder.classList.add("hidden");
-    analyzeOutput.classList.remove("hidden");
-    analyzeOutput.innerHTML = `<div class="loading-state"><div class="loading-spinner"></div><p>AI is reviewing your document...</p></div>`;
-
-    const jurisdiction = jurisdictionSel.value;
-    const focus = analyzeFocus.value;
-    const type  = docType.value;
-
-    const prompt = `Analyze the following legal document. Jurisdiction: ${jurisdiction}. Document type: ${type}. Analysis focus: ${focus}.
+  const prompt = `Analyze the following legal document. Jurisdiction: ${jurisdiction}. Document type: ${type}. Analysis focus: ${focus}.
 
 Document:
 """
@@ -90,38 +92,34 @@ Provide a structured analysis with these sections:
 
 Format each section clearly. Use bold for emphasis. Be specific and reference actual text from the document.`;
 
-    try {
-      const aiText = await LexAI.API.callGemini(
-        `You are LexAI, an expert legal document analyst. Analyze documents thoroughly, identify risks, and explain everything in plain English. Jurisdiction: ${jurisdiction}.`,
-        prompt
-      );
-      renderAnalysisOutput(aiText);
-    } catch (err) {
-      const safeMsg = LexAI.Security.escapeHtml(err.message || "Unknown error");
+  try {
+    const aiText = await callGemini(
+      `You are LexAI, an expert legal document analyst. Analyze documents thoroughly, identify risks, and explain everything in plain English. Jurisdiction: ${jurisdiction}.`,
+      prompt
+    );
+    renderAnalysisOutput(aiText);
+  } catch (err) {
+    if (err.message === "API_KEY_MISSING" || err.message === "API_KEY_INVALID") {
+      showToast("API Key is missing or invalid. Refresh to enter key.", "error");
+    } else {
+      const safeMsg = escapeHtml(err.message || "Unknown error");
       analyzeOutput.innerHTML = `<div class="output-placeholder"><div class="placeholder-icon">⚠️</div><p>Analysis failed: ${safeMsg}</p></div>`;
-      LexAI.UI.showToast("Analysis failed: " + err.message, "error");
-    } finally {
-      isLoading = false;
-      analyzeBtn.disabled = false;
-      analyzeBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Analyze Document`;
+      showToast("Analysis failed: " + err.message, "error");
     }
+  } finally {
+    isLoading = false;
+    analyzeBtn.disabled = false;
+    analyzeBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Analyze Document`;
   }
+}
 
-  function renderAnalysisOutput(aiMarkdown) {
-    const text = aiMarkdown;
-    analyzeOutput.innerHTML = `
-      <div class="analysis-content" style="font-size:14px;line-height:1.8;color:var(--color-text-primary);">
-        ${LexAI.Utils.markdownToHtml(text)}
-      </div>
-      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--color-border);font-size:11px;color:var(--color-text-muted);">
-        ⚠️ This analysis is for informational purposes only and does not constitute legal advice. Always consult a qualified legal professional before making decisions based on this analysis.
-      </div>`;
-  }
-
-  // Export module functions
-  LexAI.Features = LexAI.Features || {};
-  LexAI.Features.Analyze = {
-    setup
-  };
-
-})(window.LexAI = window.LexAI || {});
+function renderAnalysisOutput(aiMarkdown) {
+  const text = aiMarkdown;
+  analyzeOutput.innerHTML = `
+    <div class="analysis-content" style="font-size:14px;line-height:1.8;color:var(--color-text-primary);">
+      ${markdownToHtml(text)}
+    </div>
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--color-border);font-size:11px;color:var(--color-text-muted);">
+      ⚠️ This analysis is for informational purposes only and does not constitute legal advice. Always consult a qualified legal professional before making decisions based on this analysis.
+    </div>`;
+}

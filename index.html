@@ -12,6 +12,8 @@
   <meta property="og:type" content="website" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@700&display=swap" as="style" />
+  <link rel="preload" href="styles.css" as="style" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -92,7 +94,7 @@
   </aside>
 
   <!-- Main Content -->
-  <main id="main-content" class="main-content">
+  <main id="main-content" class="main-content" role="main">
 
     <!-- Top Bar -->
     <header class="topbar">
@@ -212,7 +214,7 @@
               <p>Your analysis will appear here</p>
               <p class="placeholder-sub">AI will identify key clauses, potential risks, obligations, and provide a plain-English summary.</p>
             </div>
-            <div id="analyze-output" class="analyze-output hidden"></div>
+            <div id="analyze-output" class="analyze-output hidden" aria-live="polite" aria-atomic="true"></div>
           </div>
         </div>
       </div>
@@ -251,7 +253,7 @@
             <div class="placeholder-icon">🔄</div>
             <p>Comparison results will appear here</p>
           </div>
-          <div id="compare-output" class="compare-output hidden"></div>
+          <div id="compare-output" class="compare-output hidden" aria-live="polite" aria-atomic="true"></div>
         </div>
       </div>
     </section>
@@ -307,7 +309,7 @@
           </button>
         </div>
 
-        <div id="rights-output" class="rights-output hidden"></div>
+        <div id="rights-output" class="rights-output hidden" aria-live="polite" aria-atomic="true"></div>
       </div>
     </section>
 
@@ -362,7 +364,7 @@
           <button id="generate-template-btn" class="btn btn-primary" aria-label="Generate document">
             ✨ Generate Document
           </button>
-          <div id="template-output" class="template-output hidden"></div>
+          <div id="template-output" class="template-output hidden" aria-live="polite" aria-atomic="true"></div>
         </div>
       </div>
     </section>
@@ -430,17 +432,6 @@
 
   <!-- Fallback stub if Firebase fails to load -->
   <script src="firebase.js"></script>
-  <!-- Application Modules -->
-  <script src="/js/config.js"></script>
-  <script src="/js/utils.js"></script>
-  <script src="/js/security.js"></script>
-  <script src="/js/api.js"></script>
-  <script src="/js/ui.js"></script>
-  <script src="/js/features/chat.js"></script>
-  <script src="/js/features/analyze.js"></script>
-  <script src="/js/features/compare.js"></script>
-  <script src="/js/features/rights.js"></script>
-  <script src="/js/features/templates.js"></script>
-  <script src="/js/app.js"></script>
+  <script type="module" src="/js/app.js" defer></script>
 </body>
 </html>
