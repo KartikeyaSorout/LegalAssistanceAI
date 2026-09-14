@@ -58,18 +58,21 @@
     };
 
     let endpoint = "";
+    const headers = { "Content-Type": "application/json" };
+    
     if (LexAI.Config.USE_CLOUD_FUNCTION) {
       // Use proxy backend
       endpoint = "/api/gemini"; 
     } else {
-      // Fallback for direct client-side (development only)
-      endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${LexAI.Config.GEMINI_MODEL}:generateContent?key=${LexAI.Config.GEMINI_API_KEY}`;
+      // Fallback for direct client-side
+      endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${LexAI.Config.GEMINI_MODEL}:generateContent`;
+      headers["X-goog-api-key"] = LexAI.Config.GEMINI_API_KEY;
     }
 
     try {
       const response = await fetch(endpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: headers,
         body: JSON.stringify(body)
       });
 

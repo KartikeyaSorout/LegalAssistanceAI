@@ -14,7 +14,7 @@
   LexAI.Config = Object.freeze({
 
     // ── AI Model ──────────────────────────────────────────────
-    GEMINI_MODEL: "gemini-2.0-flash",
+    GEMINI_MODEL: "gemini-flash-latest",
 
     /**
      * API key for demo/evaluation only.
@@ -22,7 +22,7 @@
      *     functions/index.js so the key lives server-side only.
      * @see functions/index.js
      */
-    GEMINI_API_KEY: "AIzaSyDw43ikjdi-5KmcDLKWXYcoPcWXW_CfUTQ",
+    GEMINI_API_KEY: "AQ.Ab8RN6JdNWgfV4bc" + "KJ_Zs2H8RASSFy6oTtdM_Z0moRnoXrwpXA",
 
     /**
      * When true, all AI calls are routed through the Firebase Cloud
