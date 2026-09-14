@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LexAI — AI Legal Assistance Platform</title>
+  <meta name="description" content="LexAI is a GenAI-powered legal assistant that helps you understand, compare, and navigate legal documents with ease. Get plain-English explanations of complex legal terms instantly." />
+  <meta property="og:title" content="LexAI — AI Legal Assistance Platform" />
+  <meta property="og:description" content="Understand complex legal documents with AI-powered assistance." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Loading Screen -->
+  <div id="loading-screen" class="loading-screen">
+    <div class="loader-content">
+      <div class="loader-logo">
+        <span class="logo-icon">⚖️</span>
+        <span class="logo-text">LexAI</span>
+      </div>
+      <div class="loader-bar">
+        <div class="loader-fill"></div>
+      </div>
+      <p class="loader-subtitle">Initializing Legal Intelligence...</p>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <span class="logo-icon">⚖️</span>
+        <span class="logo-text">LexAI</span>
+      </div>
+      <button id="sidebar-toggle" class="icon-btn" title="Toggle sidebar" aria-label="Toggle sidebar">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button id="nav-chat" class="nav-item active" data-section="chat" aria-label="Legal Chat">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>Legal Chat</span>
+      </button>
+      <button id="nav-analyze" class="nav-item" data-section="analyze" aria-label="Document Analyzer">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <span>Doc Analyzer</span>
+      </button>
+      <button id="nav-compare" class="nav-item" data-section="compare" aria-label="Compare Documents">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="9" height="18" rx="1"/><rect x="13" y="3" width="9" height="18" rx="1"/></svg>
+        <span>Compare Docs</span>
+      </button>
+      <button id="nav-rights" class="nav-item" data-section="rights" aria-label="Know Your Rights">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>Know Your Rights</span>
+      </button>
+      <button id="nav-templates" class="nav-item" data-section="templates" aria-label="Legal Templates">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        <span>Templates</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="jurisdiction-selector">
+        <label for="jurisdiction-select" class="jurisdiction-label">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          Jurisdiction
+        </label>
+        <select id="jurisdiction-select" aria-label="Select jurisdiction">
+          <option value="India">🇮🇳 India</option>
+          <option value="United States">🇺🇸 United States</option>
+          <option value="United Kingdom">🇬🇧 United Kingdom</option>
+          <option value="Canada">🇨🇦 Canada</option>
+          <option value="Australia">🇦🇺 Australia</option>
+          <option value="European Union">🇪🇺 European Union</option>
+          <option value="General">🌐 General</option>
+        </select>
+      </div>
+      <div class="disclaimer-mini">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        For informational purposes only. Not legal advice.
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main id="main-content" class="main-content">
+
+    <!-- Top Bar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button id="mobile-menu-btn" class="icon-btn mobile-only" aria-label="Open menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <h1 id="section-title" class="section-title">Legal Chat Assistant</h1>
+      </div>
+      <div class="topbar-right">
+        <div id="api-status" class="api-status" title="API Status">
+          <span class="status-dot"></span>
+          <span class="status-text">Ready</span>
+        </div>
+        <button id="clear-btn" class="btn btn-ghost btn-sm" aria-label="Clear session">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          Clear
+        </button>
+      </div>
+    </header>
+
+    <!-- ===== CHAT SECTION ===== -->
+    <section id="section-chat" class="section active">
+      <div class="chat-container">
+        <div id="chat-messages" class="chat-messages" role="log" aria-live="polite" aria-label="Chat messages">
+          <!-- Welcome Message -->
+          <div class="chat-welcome">
+            <div class="welcome-icon">⚖️</div>
+            <h2 class="welcome-title">Welcome to LexAI</h2>
+            <p class="welcome-subtitle">Your AI-powered legal assistant. Ask me anything about legal matters, and I'll provide clear, accessible explanations.</p>
+            <div class="quick-prompts">
+              <button class="quick-prompt-btn" id="qp1" data-prompt="What are my rights as a tenant if my landlord refuses to return my security deposit?">🏠 Tenant rights & security deposit</button>
+              <button class="quick-prompt-btn" id="qp2" data-prompt="Explain what an NDA (Non-Disclosure Agreement) is and what I should look out for before signing one.">📝 NDA explained simply</button>
+              <button class="quick-prompt-btn" id="qp3" data-prompt="What are my rights if I am wrongfully terminated from my job?">💼 Wrongful termination rights</button>
+              <button class="quick-prompt-btn" id="qp4" data-prompt="What is the difference between a civil case and a criminal case?">⚖️ Civil vs Criminal law</button>
+              <button class="quick-prompt-btn" id="qp5" data-prompt="Explain copyright law and how it protects my creative work.">©️ Copyright protection basics</button>
+              <button class="quick-prompt-btn" id="qp6" data-prompt="What steps should I take if I receive a legal notice or summons?">📨 Received a legal notice?</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="chat-input-area">
+          <div class="chat-input-wrapper">
+            <textarea
+              id="chat-input"
+              class="chat-input"
+              placeholder="Ask a legal question... (e.g. 'What are my rights as an employee?')"
+              rows="1"
+              aria-label="Legal question input"
+            ></textarea>
+            <button id="send-btn" class="send-btn" aria-label="Send message">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+          <p class="input-hint">Press <kbd>Enter</kbd> to send · <kbd>Shift+Enter</kbd> for new line</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== DOCUMENT ANALYZER SECTION ===== -->
+    <section id="section-analyze" class="section">
+      <div class="tool-container">
+        <div class="tool-header">
+          <h2 class="tool-title">📄 Document Analyzer</h2>
+          <p class="tool-subtitle">Paste any legal document — contracts, agreements, terms of service — and get an instant AI-powered breakdown of key clauses, risks, and plain-English summaries.</p>
+        </div>
+
+        <div class="analyze-layout">
+          <div class="analyze-input-panel">
+            <div class="panel-header">
+              <h3>Paste Your Document</h3>
+              <div class="panel-actions">
+                <button id="load-sample-doc" class="btn btn-ghost btn-sm" aria-label="Load sample document">Load Sample</button>
+                <button id="clear-doc" class="btn btn-ghost btn-sm" aria-label="Clear document">Clear</button>
+              </div>
+            </div>
+            <textarea
+              id="doc-input"
+              class="doc-textarea"
+              placeholder="Paste your legal document here (contract, NDA, terms of service, lease agreement, etc.)..."
+              aria-label="Document text input"
+            ></textarea>
+            <div class="analyze-options">
+              <div class="option-group">
+                <label for="doc-type" class="option-label">Document Type</label>
+                <select id="doc-type" aria-label="Select document type">
+                  <option value="auto">Auto-detect</option>
+                  <option value="contract">Contract/Agreement</option>
+                  <option value="nda">NDA</option>
+                  <option value="lease">Lease/Rental Agreement</option>
+                  <option value="employment">Employment Contract</option>
+                  <option value="tos">Terms of Service</option>
+                  <option value="privacy">Privacy Policy</option>
+                  <option value="will">Will/Testament</option>
+                </select>
+              </div>
+              <div class="option-group">
+                <label for="analyze-focus" class="option-label">Analysis Focus</label>
+                <select id="analyze-focus" aria-label="Select analysis focus">
+                  <option value="comprehensive">Comprehensive Review</option>
+                  <option value="risks">Risk Identification</option>
+                  <option value="summary">Quick Summary</option>
+                  <option value="obligations">Obligations & Duties</option>
+                  <option value="deadlines">Deadlines & Dates</option>
+                </select>
+              </div>
+            </div>
+            <button id="analyze-btn" class="btn btn-primary analyze-action-btn" aria-label="Analyze document">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              Analyze Document
+            </button>
+          </div>
+
+          <div class="analyze-output-panel">
+            <div id="analyze-placeholder" class="output-placeholder">
+              <div class="placeholder-icon">🔍</div>
+              <p>Your analysis will appear here</p>
+              <p class="placeholder-sub">AI will identify key clauses, potential risks, obligations, and provide a plain-English summary.</p>
+            </div>
+            <div id="analyze-output" class="analyze-output hidden"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== COMPARE SECTION ===== -->
+    <section id="section-compare" class="section">
+      <div class="tool-container">
+        <div class="tool-header">
+          <h2 class="tool-title">🔄 Document Comparator</h2>
+          <p class="tool-subtitle">Compare two versions of a legal document side-by-side. AI will highlight key differences, added/removed clauses, and flag significant changes.</p>
+        </div>
+
+        <div class="compare-layout">
+          <div class="compare-panels">
+            <div class="compare-panel">
+              <div class="panel-header">
+                <h3>Document A (Original)</h3>
+                <button class="btn btn-ghost btn-sm" id="load-sample-a" aria-label="Load sample for document A">Sample A</button>
+              </div>
+              <textarea id="doc-a" class="doc-textarea compare-doc-textarea" placeholder="Paste the first/original document here..." aria-label="Document A text"></textarea>
+            </div>
+            <div class="compare-panel">
+              <div class="panel-header">
+                <h3>Document B (Revised)</h3>
+                <button class="btn btn-ghost btn-sm" id="load-sample-b" aria-label="Load sample for document B">Sample B</button>
+              </div>
+              <textarea id="doc-b" class="doc-textarea compare-doc-textarea" placeholder="Paste the second/revised document here..." aria-label="Document B text"></textarea>
+            </div>
+          </div>
+          <button id="compare-btn" class="btn btn-primary compare-action-btn" aria-label="Compare documents">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="9" height="18" rx="1"/><rect x="13" y="3" width="9" height="18" rx="1"/></svg>
+            Compare Documents
+          </button>
+          <div id="compare-placeholder" class="output-placeholder">
+            <div class="placeholder-icon">🔄</div>
+            <p>Comparison results will appear here</p>
+          </div>
+          <div id="compare-output" class="compare-output hidden"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== KNOW YOUR RIGHTS SECTION ===== -->
+    <section id="section-rights" class="section">
+      <div class="tool-container">
+        <div class="tool-header">
+          <h2 class="tool-title">🛡️ Know Your Rights</h2>
+          <p class="tool-subtitle">Explore your legal rights in common everyday situations. Select a scenario to get a detailed, jurisdiction-aware breakdown of your rights.</p>
+        </div>
+
+        <div class="rights-grid">
+          <button class="rights-card" id="rights-tenant" data-scenario="tenant" aria-label="Tenant rights">
+            <div class="rights-card-icon">🏠</div>
+            <h3>Tenant Rights</h3>
+            <p>Rent disputes, security deposits, eviction, maintenance obligations</p>
+          </button>
+          <button class="rights-card" id="rights-employee" data-scenario="employee" aria-label="Employee rights">
+            <div class="rights-card-icon">💼</div>
+            <h3>Employee Rights</h3>
+            <p>Wrongful termination, workplace harassment, wage disputes, leave policies</p>
+          </button>
+          <button class="rights-card" id="rights-consumer" data-scenario="consumer" aria-label="Consumer rights">
+            <div class="rights-card-icon">🛒</div>
+            <h3>Consumer Rights</h3>
+            <p>Defective products, refunds, false advertising, e-commerce disputes</p>
+          </button>
+          <button class="rights-card" id="rights-privacy" data-scenario="privacy" aria-label="Privacy rights">
+            <div class="rights-card-icon">🔒</div>
+            <h3>Privacy Rights</h3>
+            <p>Data protection, surveillance, GDPR/PDPA, right to erasure</p>
+          </button>
+          <button class="rights-card" id="rights-property" data-scenario="property" aria-label="Property rights">
+            <div class="rights-card-icon">🏗️</div>
+            <h3>Property Rights</h3>
+            <p>Ownership disputes, land acquisition, inheritance, property transfer</p>
+          </button>
+          <button class="rights-card" id="rights-family" data-scenario="family" aria-label="Family law rights">
+            <div class="rights-card-icon">👨‍👩‍👧</div>
+            <h3>Family Law</h3>
+            <p>Divorce, child custody, maintenance, adoption, domestic violence</p>
+          </button>
+          <button class="rights-card" id="rights-business" data-scenario="business" aria-label="Business rights">
+            <div class="rights-card-icon">🏢</div>
+            <h3>Business Rights</h3>
+            <p>Contracts, IP rights, partnerships, company incorporation, disputes</p>
+          </button>
+          <button class="rights-card" id="rights-criminal" data-scenario="criminal" aria-label="Criminal rights">
+            <div class="rights-card-icon">🚔</div>
+            <h3>Criminal Rights</h3>
+            <p>Rights upon arrest, bail, FIR process, legal representation, appeal</p>
+          </button>
+        </div>
+
+        <div id="rights-output" class="rights-output hidden"></div>
+      </div>
+    </section>
+
+    <!-- ===== TEMPLATES SECTION ===== -->
+    <section id="section-templates" class="section">
+      <div class="tool-container">
+        <div class="tool-header">
+          <h2 class="tool-title">📋 Legal Document Templates</h2>
+          <p class="tool-subtitle">Generate AI-customized legal document templates. Fill in your details and get a ready-to-review draft.</p>
+        </div>
+
+        <div class="templates-grid">
+          <button class="template-card" id="tmpl-nda" data-template="nda" aria-label="Generate NDA template">
+            <div class="template-icon">🤝</div>
+            <h3>NDA / Confidentiality</h3>
+            <p>Non-Disclosure Agreement for business or personal use</p>
+            <span class="template-badge">Popular</span>
+          </button>
+          <button class="template-card" id="tmpl-freelance" data-template="freelance" aria-label="Generate freelance contract">
+            <div class="template-icon">💻</div>
+            <h3>Freelance Contract</h3>
+            <p>Service agreement for freelancers and clients</p>
+          </button>
+          <button class="template-card" id="tmpl-lease" data-template="lease" aria-label="Generate lease agreement">
+            <div class="template-icon">🏠</div>
+            <h3>Rental / Lease</h3>
+            <p>Residential or commercial lease agreement template</p>
+          </button>
+          <button class="template-card" id="tmpl-cease" data-template="cease" aria-label="Generate cease and desist letter">
+            <div class="template-icon">✉️</div>
+            <h3>Cease & Desist</h3>
+            <p>Formal letter to stop unauthorized activities</p>
+          </button>
+          <button class="template-card" id="tmpl-mou" data-template="mou" aria-label="Generate MOU template">
+            <div class="template-icon">📄</div>
+            <h3>MOU / LOI</h3>
+            <p>Memorandum of Understanding or Letter of Intent</p>
+          </button>
+          <button class="template-card" id="tmpl-employment" data-template="employment" aria-label="Generate employment contract">
+            <div class="template-icon">👔</div>
+            <h3>Employment Contract</h3>
+            <p>Standard employment agreement with key clauses</p>
+          </button>
+        </div>
+
+        <div id="template-form-container" class="template-form-container hidden">
+          <div class="template-form-header">
+            <h3 id="template-form-title">Customize Your Template</h3>
+            <button id="back-to-templates" class="btn btn-ghost btn-sm" aria-label="Back to templates">← Back</button>
+          </div>
+          <div id="template-form-fields" class="template-form-fields"></div>
+          <button id="generate-template-btn" class="btn btn-primary" aria-label="Generate document">
+            ✨ Generate Document
+          </button>
+          <div id="template-output" class="template-output hidden"></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Overlay for mobile sidebar -->
+  <div id="sidebar-overlay" class="sidebar-overlay" aria-hidden="true"></div>
+
+  <!-- Toast notification -->
+  <div id="toast" class="toast" role="alert" aria-live="assertive"></div>
+
+  <!-- Firebase SDK via ESM (no bundler needed) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit, serverTimestamp }
+      from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDw43ikjdi-5KmcDLKWXYcoPcWXW_CfUTQ",
+      authDomain: "legalassistanceai.firebaseapp.com",
+      projectId: "legalassistanceai",
+      storageBucket: "legalassistanceai.firebasestorage.app",
+      messagingSenderId: "307215054999",
+      appId: "1:307215054999:web:a856ea0118634a1b5051d2",
+      measurementId: "G-4HJVK8MP3J"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
+    try { getAnalytics(app); } catch(e) { /* analytics optional */ }
+
+    function getSessionId() {
+      let sid = sessionStorage.getItem("lexai_session");
+      if (!sid) {
+        sid = "sess_" + Date.now() + "_" + Math.random().toString(36).slice(2,8);
+        sessionStorage.setItem("lexai_session", sid);
+      }
+      return sid;
+    }
+
+    window.LexFirebase = {
+      db,
+      saveChatToFirestore: async (userMsg, aiMsg, jurisdiction = "General") => {
+        try {
+          await addDoc(collection(db, "chats"), {
+            userMessage: userMsg,
+            aiResponse: aiMsg,
+            jurisdiction,
+            timestamp: serverTimestamp(),
+            sessionId: getSessionId()
+          });
+        } catch(e) { console.warn("Firestore save skipped:", e.message); }
+      },
+      loadChatHistory: async () => {
+        try {
+          const q = query(collection(db, "chats"), orderBy("timestamp", "desc"), limit(20));
+          const snap = await getDocs(q);
+          return snap.docs.map(d => ({ id: d.id, ...d.data() })).reverse();
+        } catch(e) { console.warn("Firestore load skipped:", e.message); return []; }
+      }
+    };
+  </script>
+
+  <!-- Fallback stub if Firebase fails to load -->
+  <script src="firebase.js"></script>
+  <!-- Main application -->
+  <script src="app.js"></script>
+</body>
+</html>
